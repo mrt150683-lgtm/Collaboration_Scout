@@ -1,0 +1,74 @@
+# --- Claude Code local files ---
+.claude/
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+*.log
+
+# --- env / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- deps / builds ---
+node_modules/
+dist/
+build/
+out/
+coverage/
+.cache/
+tmp/
+temp/
+
+# --- local data + outputs ---
+data/
+output/
+outputs/
+export/
+exports/
+reports/
+artifacts/
+runs/
+cache/
+
+# --- databases (keep local) ---
+*.db
+*.sqlite
+*.sqlite3
+*.duckdb
+*.db-journal
+*.sqlite-journal
+*.wal
+*.shm
+
+# --- markdown + text (don’t upload) ---
+*.md
+*.txt
+*.text
+*.csv
+*.tsv
+*.jsonl
+
+# keep these md files:
+!README.md
+!CLAUDE.md
+!prompts/**/*.md
+!docs/**/*.md
+
+# --- archives / binaries ---
+*.zip
+*.7z
+*.tar
+*.gz
+*.rar
+
+# --- keys / certs ---
+*.pem
+*.key
+*.p12
+*.pfx

@@ -1,0 +1,49 @@
+{
+  "name": "collaboration-scout",
+  "version": "0.1.0",
+  "description": "Local-first GitHub collaboration discovery tool",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "doctor": "node --loader ts-node/esm src/index.ts doctor",
+    "scout:run": "node --loader ts-node/esm src/index.ts scout run",
+    "scout:expand": "node --loader ts-node/esm src/index.ts scout expand",
+    "briefs:generate": "node --loader ts-node/esm src/index.ts briefs generate",
+    "briefs:export": "node --loader ts-node/esm src/index.ts briefs export",
+    "debug:replay": "node --loader ts-node/esm src/index.ts debug replay",
+    "debug:dump-run": "node --loader ts-node/esm src/index.ts debug dump-run",
+    "db:migrate": "node --loader ts-node/esm src/index.ts db migrate",
+    "db:vacuum": "node --loader ts-node/esm src/index.ts db vacuum",
+    "cache:prune": "node --loader ts-node/esm src/index.ts cache prune",
+    "logs:prune": "node --loader ts-node/esm src/index.ts logs prune"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3", "esbuild"]
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.14.9",
+    "@typescript-eslint/eslint-plugin": "^7.15.0",
+    "@typescript-eslint/parser": "^7.15.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3",
+    "vitest": "^1.6.0"
+  }
+}
