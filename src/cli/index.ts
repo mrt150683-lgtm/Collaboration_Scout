@@ -158,7 +158,8 @@ export async function runCli(argv: string[]): Promise<void> {
     .option('--overlap-threshold <n>', 'Functional overlap threshold for competitor filtering (0–1)')
     .option('--overlap-penalty <n>', 'Exception penalty for interop-tagged competitor pairs')
     .option('--history-candidates <n>', 'Max historical repos from previous runs to inject (0 = disabled)')
-    .action(async (opts: { runId: string; minScore?: string; maxBriefs?: string; overlapThreshold?: string; overlapPenalty?: string; historyCandidates?: string }) => {
+    .option('--own-repo <owner/repo>', 'Your own repo (e.g. myorg/myrepo) — exempt from diversity dedup so it appears in every brief')
+    .action(async (opts: { runId: string; minScore?: string; maxBriefs?: string; overlapThreshold?: string; overlapPenalty?: string; historyCandidates?: string; ownRepo?: string }) => {
       const config = loadConfig();
       if (!config.OPENROUTER_API_KEY) {
         process.stderr.write('Error: OPENROUTER_API_KEY is not set\n');
@@ -182,6 +183,7 @@ export async function runCli(argv: string[]): Promise<void> {
           overlapThreshold: opts.overlapThreshold ? parseFloat(opts.overlapThreshold) : config.CS_OVERLAP_THRESHOLD,
           overlapExceptionPenalty: opts.overlapPenalty ? parseFloat(opts.overlapPenalty) : config.CS_OVERLAP_EXCEPTION_PENALTY,
           historyCandidates: opts.historyCandidates ? parseInt(opts.historyCandidates, 10) : config.CS_HISTORY_CANDIDATES,
+          ownRepo: opts.ownRepo,
         });
         console.log(JSON.stringify(result, null, 2));
       } finally {

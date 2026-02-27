@@ -47,6 +47,11 @@ export interface GeneratorOptions {
    * candidate pool. Set to 0 to disable. Default: 100.
    */
   historyCandidates?: number;
+  /**
+   * The user's own repo (e.g. "owner/repo"). Exempt from the per-repo dedup cap
+   * so it can appear in every brief regardless of how many times it's been shortlisted.
+   */
+  ownRepo?: string;
   _fetch?: typeof fetch;
   _sleep?: (ms: number) => Promise<void>;
 }
@@ -330,8 +335,24 @@ export async function generateBriefs(
   let failed = 0;
   let candidates_evaluated = 0;
 
+  // Resolve own repo full_name → repo_id (exempt from dedup cap)
+  const ownRepoId = opts.ownRepo
+    ? (repos.find((r) => r.full_name.toLowerCase() === opts.ownRepo!.toLowerCase())?.repo_id ?? null)
+    : null;
+
+  // Track repos that already anchor a shortlisted brief — each repo gets one top-billing slot.
+  // Own repo is exempt: it should appear in every brief when the user is searching from their own project.
+  const shortlistedRepos = new Set<string>();
+
   for (const { group, penalty } of filteredGroups) {
     if (briefs_generated >= maxBriefs) break;
+
+    // Skip groups where any repo has already appeared in a shortlisted brief,
+    // unless the group contains the user's own repo (always allowed through).
+    const hasOwnRepo = ownRepoId !== null && group.repo_ids.includes(ownRepoId);
+    const anyAlreadyShortlisted = !hasOwnRepo && group.repo_ids.some((id) => shortlistedRepos.has(id));
+    if (anyAlreadyShortlisted) continue;
+
     candidates_evaluated++;
 
     const items: RepoWithAnalysis[] = [];
@@ -401,6 +422,9 @@ export async function generateBriefs(
     briefs_generated++;
     if (status === 'shortlisted') {
       briefs_shortlisted++;
+      for (const id of group.repo_ids) {
+        if (id !== ownRepoId) shortlistedRepos.add(id);
+      }
     } else {
       briefs_rejected++;
     }

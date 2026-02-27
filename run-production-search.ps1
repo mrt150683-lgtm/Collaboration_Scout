@@ -12,7 +12,9 @@ param(
     [int]$HistoryCandidates = 100,
     [double]$MinScore = 0.65,
     [int]$MaxBriefs = 30,
-    [string]$OutputDir = "./output"
+    [string]$OutputDir = "./output",
+    # Your own repo (e.g. "myorg/myrepo") - exempt from diversity dedup, appears in every brief
+    [string]$OwnRepo = ""
 )
 
 # Helper: run a pnpm script silently and return its output lines
@@ -117,21 +119,42 @@ Write-Host "  Query: '$Query'" -ForegroundColor Gray
 Write-Host "  Top: $Top, Stars: $Stars-$MaxStars, Days: $Days, Lang: $Language" -ForegroundColor Gray
 Write-Host ""
 
-$scoutArgs = "scout:run --query ""$Query"" --days $Days --stars $Stars --max-stars $MaxStars --top $Top --lang $Language"
-$scoutOut = Run-Pnpm-Live $scoutArgs
+function Run-Scout {
+    param([int]$StarsMin, [int]$StarsMax, [string]$Lang)
+    $args = "scout:run --query ""$Query"" --days $Days --stars $StarsMin --max-stars $StarsMax --top $Top"
+    if ($Lang -ne "") { $args += " --lang $Lang" }
+    return Run-Pnpm-Live $args
+}
 
+$scoutOut = Run-Scout -StarsMin $Stars -StarsMax $MaxStars -Lang $Language
 $scoutJsonStr = Extract-Json -Lines $scoutOut
+
 if ([string]::IsNullOrEmpty($scoutJsonStr)) {
     Write-Host "ERROR: Scout failed - no JSON output found" -ForegroundColor Red
     exit 1
 }
 
-try {
-    $scoutJson = $scoutJsonStr | ConvertFrom-Json
-    $RUN_ID = $scoutJson.run_id
-} catch {
+try { $scoutJson = $scoutJsonStr | ConvertFrom-Json; $RUN_ID = $scoutJson.run_id } catch {
     Write-Host "ERROR: Could not parse scout output as JSON" -ForegroundColor Red
     exit 1
+}
+
+# Auto-retry with looser thresholds if nothing found
+if ($scoutJson.repos_found -eq 0) {
+    $retryStars = [math]::Max(1, [math]::Floor($Stars / 2))
+    Write-Host ""
+    Write-Host "  [!] No repos found. Retrying with Stars=$retryStars and no language filter..." -ForegroundColor Yellow
+    Write-Host ""
+    $scoutOut = Run-Scout -StarsMin $retryStars -StarsMax $MaxStars -Lang ""
+    $scoutJsonStr = Extract-Json -Lines $scoutOut
+    try { $scoutJson = $scoutJsonStr | ConvertFrom-Json; $RUN_ID = $scoutJson.run_id } catch { }
+}
+
+# If still nothing, bail cleanly
+if ($scoutJson.repos_found -eq 0) {
+    Write-Host ""
+    Write-Host "[SKIP] No repos found after retry. Try a broader query." -ForegroundColor Yellow
+    exit 0
 }
 
 if ([string]::IsNullOrEmpty($RUN_ID)) {
@@ -151,6 +174,7 @@ Write-Host "  Min score: $MinScore, Max briefs: $MaxBriefs" -ForegroundColor Gra
 Write-Host ""
 
 $briefsArgs = "briefs:generate --run-id $RUN_ID --min-score $MinScore --max-briefs $MaxBriefs --overlap-threshold $OverlapThreshold --history-candidates $HistoryCandidates"
+if ($OwnRepo -ne "") { $briefsArgs += " --own-repo ""$OwnRepo""" }
 $briefsOut = Run-Pnpm $briefsArgs
 $briefsOut | Write-Host
 
